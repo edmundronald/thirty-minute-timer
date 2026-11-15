@@ -18,15 +18,21 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 *{box-sizing:border-box}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Familjen Grotesk",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:28px;padding:28px 16px 40px}
-.clock{text-align:center;border:2px solid var(--ink);border-radius:16px;padding:14px 34px 12px}
+.clock{text-align:center;background:var(--arc);border:2px solid var(--arc);color:#fff;border-radius:16px;padding:14px 34px 12px;transition:background .4s,border-color .4s}
+.low .clock{background:var(--alert);border-color:var(--alert)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .clock{color:#0F1A22}}
+:root[data-theme="dark"] .clock{color:#0F1A22}
 .clock .time{font-family:"Martian Mono",ui-monospace,Menlo,monospace;font-weight:300;font-size:clamp(34px,9vw,56px);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.clock .date{color:var(--muted);font-size:15px;margin-top:2px}
+.clock .date{color:inherit;opacity:.88;font-size:15px;margin-top:2px}
 .timer{position:relative;width:min(88vw,420px);aspect-ratio:1}
 svg{width:100%;height:100%;display:block;overflow:visible}
 .tick{stroke:var(--arc);stroke-width:3;stroke-linecap:round;transition:stroke .3s,opacity .3s}
 .tick.gone{stroke:var(--track)}
 .track{fill:none;stroke:var(--track);stroke-width:14}
 .arc{fill:none;stroke:var(--arc);stroke-width:14;stroke-linecap:butt;transition:stroke .4s}
+.arc2{fill:none;stroke:#17406B;stroke-width:14;stroke-linecap:butt}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .arc2{stroke:#8FB8FF}}
+:root[data-theme="dark"] .arc2{stroke:#8FB8FF}
 .low .arc{stroke:var(--alert)}
 .redmark{stroke:#E5283B;stroke-width:4;stroke-linecap:round}
 .stick{stroke:var(--muted);stroke-width:1.5;stroke-linecap:round;transition:stroke .3s}
@@ -68,6 +74,7 @@ button:focus-visible{outline:3px solid var(--arc);outline-offset:3px}
     <g id="ticks"></g>
     <circle class="track" cx="160" cy="160" r="118"/>
     <circle class="arc" id="arc" cx="160" cy="160" r="118" transform="rotate(-90 160 160)"/>
+    <circle class="arc2" id="arc2" cx="160" cy="160" r="118" transform="rotate(-90 160 160)"/>
     <g id="marks"></g>
     <g id="hand"><line class="hand-hit" x1="160" y1="84" x2="160" y2="20"/><line class="hand-line" x1="160" y1="56" x2="160" y2="10"/></g>
   </svg>
@@ -88,6 +95,8 @@ button:focus-visible{outline:3px solid var(--arc);outline-offset:3px}
       lampEl = document.getElementById('lamp'), go = document.getElementById('go'),
       timer = document.getElementById('timer'), ticksG = document.getElementById('ticks');
   arc.style.strokeDasharray = C;
+  var arc2 = document.getElementById('arc2');
+  arc2.style.strokeDasharray = C; arc2.style.strokeDashoffset = C;
   var state = { set textContent(v){ var on = (v === 'Running'); lampEl.classList.toggle('on', on); go.classList.toggle('stop', on); lampEl.setAttribute('aria-label', on ? 'Stop timer' : 'Start timer'); } };
 
   var ns = 'http://www.w3.org/2000/svg', ticks = [];
@@ -110,11 +119,12 @@ button:focus-visible{outline:3px solid var(--arc);outline-offset:3px}
     sl.setAttribute('class','stick'); ticksG.appendChild(sl); small[j] = sl;
   }
 
+  var numEls = [], numOff = 0;
   for (var n = 0; n <= 25; n += 5){
     var na = (n/30)*2*Math.PI - Math.PI/2;
     var tx = document.createElementNS(ns,'text');
     tx.setAttribute('x',160+Math.cos(na)*86); tx.setAttribute('y',160+Math.sin(na)*86);
-    tx.setAttribute('class','num'); tx.textContent = n; ticksG.appendChild(tx);
+    tx.setAttribute('class','num'); tx.textContent = n; ticksG.appendChild(tx); numEls.push({el:tx, n:n});
   }
 
   var marksG = document.getElementById('marks'), hand = document.getElementById('hand'), sec = document.getElementById('sec');
@@ -130,12 +140,17 @@ button:focus-visible{outline:3px solid var(--arc);outline-offset:3px}
 
   function pad(n){ return (n<10?'0':'')+n; }
   function render(){
-    arc.style.strokeDashoffset = C*(1 - remaining/TOTAL);
-    hand.setAttribute('transform','rotate('+(360*remaining/TOTAL)+' 160 160)');
+    var lap2 = remaining > TOTAL, r1 = lap2 ? remaining - TOTAL : remaining, rt = lap2 ? TOTAL : remaining;
+    arc.style.strokeDashoffset = lap2 ? 0 : C*(1 - remaining/TOTAL);
+    arc2.style.strokeDashoffset = lap2 ? C*(1 - r1/TOTAL) : C;
+    var off = lap2 ? 30 : 0;
+    if (off !== numOff){ numOff = off; for (var q = 0; q < numEls.length; q++) numEls[q].el.textContent = numEls[q].n + off; }
+    hand.setAttribute('transform','rotate('+(360*r1/TOTAL)+' 160 160)');
     sec.style.transform = 'rotate('+(360*((remaining % 60000)/60000))+'deg)';
-    for (var i = 0; i < 30; i++) ticks[i].classList.toggle('gone', i*60000 > remaining);
-    for (var j = 0; j < 150; j++) if (small[j]) small[j].classList.toggle('gone', j*12000 > remaining);
-    timer.classList.toggle('low', remaining <= 5*60*1000 && remaining > 0);
+    for (var i = 0; i < 30; i++) ticks[i].classList.toggle('gone', i*60000 > rt);
+    for (var j = 0; j < 150; j++) if (small[j]) small[j].classList.toggle('gone', j*12000 > rt);
+    var low = remaining <= 5*60*1000 && remaining > 0;
+    timer.classList.toggle('low', low); document.body.classList.toggle('low', low);
   }
   function tick(){
     remaining = Math.max(0, endAt - Date.now());
@@ -163,7 +178,7 @@ button:focus-visible{outline:3px solid var(--arc);outline-offset:3px}
 
   // Drag the minute marker to set the remaining time
   function setRemaining(ms){
-    remaining = Math.max(0, Math.min(TOTAL, ms));
+    remaining = Math.max(0, Math.min(2*TOTAL, ms));
     finished = false;
     if (running) endAt = Date.now() + remaining;
     render();
@@ -184,7 +199,7 @@ button:focus-visible{outline:3px solid var(--arc);outline-offset:3px}
     if (!dragging) return;
     var a = pointerAngle(e);
     var cand = a + 360*Math.round((cum - a)/360);
-    cum = Math.max(0, Math.min(360, cand));
+    cum = Math.max(0, Math.min(720, cand));
     setRemaining(Math.round(cum/360*TOTAL/1000)*1000);
   });
   function endDrag(){ dragging = false; }

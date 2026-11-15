@@ -4,6 +4,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>30-minute timer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;500&family=Familjen+Grotesk:wght@500;600&display=swap" rel="stylesheet">
@@ -18,8 +20,9 @@
 :root[data-theme="dark"]{--bg:#0F1A22; --ink:#E6EEF3; --muted:#8FA3B2; --track:#243542; --arc:#37C6C0; --alert:#FF6B93; --btn:#E6EEF3; --btnText:#0F1A22;color-scheme:dark}
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 *{box-sizing:border-box}
-body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Familjen Grotesk",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:28px;padding:28px 16px 40px}
-@media (display-mode:standalone){body{justify-content:center}}
+body{margin:0;min-height:100%;min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));background:var(--bg);color:var(--ink);font-family:"Familjen Grotesk",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:28px;padding:28px 16px 40px}
+@media (pointer:coarse),(display-mode:standalone){body{justify-content:center}}
+.standalone body{justify-content:center}
 .clock{text-align:center;background:var(--arc);border:2px solid var(--arc);color:#fff;border-radius:16px;padding:14px 34px 12px;transition:background .4s,border-color .4s}
 .low .clock{background:var(--alert);border-color:var(--alert)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .clock{color:#0F1A22}}
@@ -92,6 +95,7 @@ button:focus-visible{outline:3px solid var(--arc);outline-offset:3px}
 
 <script>
 (function(){
+  if (window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)) document.documentElement.classList.add('standalone');
   var TOTAL = 30*60*1000, C = 2*Math.PI*118;
   var arc = document.getElementById('arc'),
       lampEl = document.getElementById('lamp'), go = document.getElementById('go'),

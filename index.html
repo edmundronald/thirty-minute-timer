@@ -1,3 +1,4 @@
+<!-- Thirty-minute-timer, © Edmund Ronald 2026, GPL 3.0 License -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,6 +19,7 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 *{box-sizing:border-box}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Familjen Grotesk",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:28px;padding:28px 16px 40px}
+@media (display-mode:standalone){body{justify-content:center}}
 .clock{text-align:center;background:var(--arc);border:2px solid var(--arc);color:#fff;border-radius:16px;padding:14px 34px 12px;transition:background .4s,border-color .4s}
 .low .clock{background:var(--alert);border-color:var(--alert)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .clock{color:#0F1A22}}
